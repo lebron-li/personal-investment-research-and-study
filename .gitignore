@@ -10,7 +10,16 @@ desktop.ini
 .vscode/
 .idea/
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
 # Temp files
 *.tmp
 *.temp
 ~$*
+*.json.state
+*_report.txt
+*_report_utf8.txt

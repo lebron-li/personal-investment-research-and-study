@@ -1,0 +1,85 @@
+{
+  "cron_jobs": [
+    {
+      "id": "stock_noon_report",
+      "name": "📊 A 股持仓午间快评",
+      "description": "每个交易日中午 11:35 生成持仓午间快评，推送到飞书",
+      "schedule": {
+        "timezone": "Asia/Shanghai",
+        "cron": "35 11 * * 1-5"
+      },
+      "command": {
+        "type": "python",
+        "script": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py",
+        "args": ["noon"],
+        "working_dir": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts"
+      },
+      "conditions": {
+        "trading_day_only": true,
+        "exclude_holidays": true
+      },
+      "notifications": {
+        "on_success": false,
+        "on_failure": true
+      },
+      "enabled": true
+    },
+    {
+      "id": "stock_evening_report",
+      "name": "📊 A 股持仓晚间复盘",
+      "description": "每个交易日下午 15:30 生成持仓晚间复盘，推送到飞书",
+      "schedule": {
+        "timezone": "Asia/Shanghai",
+        "cron": "30 15 * * 1-5"
+      },
+      "command": {
+        "type": "python",
+        "script": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py",
+        "args": ["evening"],
+        "working_dir": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts"
+      },
+      "conditions": {
+        "trading_day_only": true,
+        "exclude_holidays": true
+      },
+      "notifications": {
+        "on_success": false,
+        "on_failure": true
+      },
+      "enabled": true
+    },
+    {
+      "id": "stock_emergency_scan",
+      "name": "🚨 A 股持仓紧急预警",
+      "description": "交易时段每 30 分钟扫描紧急预警，有预警时推送到飞书",
+      "schedule": {
+        "timezone": "Asia/Shanghai",
+        "cron": "0,30 9-15 * * 1-5"
+      },
+      "command": {
+        "type": "python",
+        "script": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py",
+        "args": ["emergency"],
+        "working_dir": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts"
+      },
+      "conditions": {
+        "trading_day_only": true,
+        "exclude_holidays": true,
+        "market_hours_only": true
+      },
+      "notifications": {
+        "on_success": false,
+        "on_failure": true,
+        "on_alert": true
+      },
+      "enabled": true
+    }
+  ],
+  "global_settings": {
+    "timezone": "Asia/Shanghai",
+    "python_path": "python",
+    "log_dir": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\logs",
+    "max_retries": 3,
+    "retry_delay_seconds": 60
+  }
+}

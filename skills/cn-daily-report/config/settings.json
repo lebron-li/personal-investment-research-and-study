@@ -1,0 +1,24 @@
+{
+  "report": {
+    "output_dir": "C:\\Users\\李正材\\Desktop\\持仓日报",
+    "noon_time": "11:35",
+    "evening_time": "15:30"
+  },
+  "holdings": {
+    "file_path": "C:\\agent\\03-portfolio-tools\\my-holdings.txt"
+  },
+  "feishu": {
+    "enabled": true,
+    "chat_id": "oc_0d8760ab9b20345f32d4219973d4cc43"
+  },
+  "alert": {
+    "breakout_threshold": 0.03,
+    "volume_ratio_threshold": 3.0,
+    "price_change_threshold": 0.07
+  },
+  "schedule": {
+    "trading_days_only": true,
+    "exclude_holidays": true,
+    "timezone": "Asia/Shanghai"
+  }
+}
