@@ -59,21 +59,21 @@ print("""
        {
          "name": "📊 A 股持仓午间快评",
          "schedule": "35 11 * * 1-5",
-         "command": "python C:\\\\Users\\\\李正材\\\\.openclaw\\\\workspace\\\\skills\\\\cn-daily-report\\\\scripts\\\\run_report.py noon",
+         "command": "python C:\\\\Users\\\\<NAME>\\\\.openclaw\\\\workspace\\\\skills\\\\cn-daily-report\\\\scripts\\\\run_report.py noon",
          "timezone": "Asia/Shanghai",
          "enabled": true
        },
        {
          "name": "📊 A 股持仓晚间复盘",
          "schedule": "30 15 * * 1-5",
-         "command": "python C:\\\\Users\\\\李正材\\\\.openclaw\\\\workspace\\\\skills\\\\cn-daily-report\\\\scripts\\\\run_report.py evening",
+         "command": "python C:\\\\Users\\\\<NAME>\\\\.openclaw\\\\workspace\\\\skills\\\\cn-daily-report\\\\scripts\\\\run_report.py evening",
          "timezone": "Asia/Shanghai",
          "enabled": true
        },
        {
          "name": "🚨 A 股持仓紧急预警",
          "schedule": "0,30 9-15 * * 1-5",
-         "command": "python C:\\\\Users\\\\李正材\\\\.openclaw\\\\workspace\\\\skills\\\\cn-daily-report\\\\scripts\\\\run_report.py emergency",
+         "command": "python C:\\\\Users\\\\<NAME>\\\\.openclaw\\\\workspace\\\\skills\\\\cn-daily-report\\\\scripts\\\\run_report.py emergency",
          "timezone": "Asia/Shanghai",
          "enabled": true
        }
@@ -92,7 +92,7 @@ print("""
 方法 3: 使用 Windows 任务计划程序
 
 运行以下命令导入任务:
-  schtasks /Create /XML "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\config\\windows_tasks.xml"
+  schtasks /Create /XML "C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\config\\windows_tasks.xml"
 
 注：Windows 任务计划程序的 XML 文件需要额外生成
 
@@ -111,7 +111,7 @@ print("""
 2. 等待下一个交易日 11:35，检查是否自动执行
 
 3. 查看日志文件:
-   C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\logs\\
+   C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\logs\\
 
 4. 检查飞书是否收到推送
 
@@ -127,7 +127,7 @@ summary = {
     "jobs_count": len(cron_config['cron_jobs']),
     "timezone": "Asia/Shanghai",
     "feishu_chat_id": "oc_0d8760ab9b20345f32d4219973d4cc43",
-    "report_output": "C:\\Users\\李正材\\Desktop\\持仓日报\\",
+    "report_output": "C:\\Users\\<NAME>\\Desktop\\持仓日报\\",
     "next_run": {
         "noon": "下一个交易日 11:35",
         "evening": "下一个交易日 15:30",

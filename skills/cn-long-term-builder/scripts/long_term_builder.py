@@ -11,10 +11,15 @@ import numpy as np
 from typing import List, Dict, Tuple, Optional
 from datetime import datetime, timedelta
 
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+try:
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+except (ValueError, AttributeError, OSError):
+    pass
 
-PORTFOLIO_FILE = r"C:\agent\03-portfolio-tools\my-holdings.txt"
+import os
+
+PORTFOLIO_FILE = r"<YOUR_PORTFOLIO_FILE_PATH>"
 MAX_RETRIES, RETRY_DELAY = 3, 3
 
 # 行业周期位置
@@ -28,6 +33,42 @@ INDUSTRY_CYCLE = {
     '房地产': {'phase': '下行出清', 'note': '仅头部国企可关注', 'score': 30},
     '互联网科技': {'phase': '反弹中', 'note': '港股估值洼地+AI催化，波动极大', 'score': 60},
 }
+
+# ── 导入扩展模块 ──
+def _import_module(mod_name):
+    """安全导入同一目录下的模块"""
+    script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in dir() else '.'
+    spec = importlib.util.spec_from_file_location(mod_name, os.path.join(script_dir, f'{mod_name}.py'))
+    if spec is None:
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+import importlib.util
+
+# v2.0: 价值陷阱检测
+_vt_module = _import_module('value_trap_detector')
+if _vt_module:
+    value_trap_detect = _vt_module.detect
+else:
+    def value_trap_detect(code, name, industry):
+        return {'quality_coefficient': 1.0, 'quality_score': 10, 'findings': ['⚠️ 质量模块未加载'], 'bonuses': [], 'metric_details': {}, 'is_bank': False}
+
+# v2.3: TSR综合股东回报率
+_tsr_module = _import_module('tsr_calculator')
+tsr_calculate = _tsr_module.calculate if _tsr_module else lambda c,n,e,p,d: {'tsr': d or 0, 'dividend_yield': d or 0, 'buyback_yield': 0, 'source': '模块未加载', 'tsr_rating': '无数据'}
+tsr_score = _tsr_module.score_tsr if _tsr_module else lambda r: (0, '模块未加载')
+
+# v2.3: AI叙事风险暴露度
+_ai_module = _import_module('ai_exposure')
+ai_detect = _ai_module.detect if _ai_module else lambda c,n,i,e: {'level': 'none', 'discount': 1.0, 'reason': '模块未加载', 'affected_constituents': []}
+ai_apply = _ai_module.apply_discount if _ai_module else lambda s,e,t: (s, '')
+
+# v2.3: 跨市场估值比价
+_cm_module = _import_module('cross_market_spread')
+cm_get = _cm_module.get_comparison if _cm_module else lambda c,e,i,p: None
+cm_fmt = _cm_module.format_cross_market if _cm_module else lambda r: ''
 
 def parse_portfolio(filepath: str) -> List[Dict]:
     holdings = []
@@ -333,7 +374,10 @@ def get_nb_flow(code: str) -> Dict:
 
 def classify(code: str, name: str) -> str:
     m = {'600036':'银行','601166':'银行','600900':'电力','002714':'生猪养殖',
-         '000333':'家电','515170':'食品饮料','515120':'医药生物','513130':'互联网科技'}
+         '000333':'家电','000876':'生猪养殖','000858':'白酒',
+         '603259':'医药生物',
+         '515170':'食品饮料','515120':'医药生物','159847':'医药生物',
+         '513130':'互联网科技','513050':'互联网科技'}
     return m.get(code,'未知')
 
 def calc_price_percentile(code: str, daily: Dict) -> Optional[float]:
@@ -347,7 +391,7 @@ def calc_price_percentile(code: str, daily: Dict) -> Optional[float]:
         return round(pct, 1)
     return None
 
-def score_val(val: Dict, ind: str, code: str, daily: Dict) -> Tuple[float,str]:
+def score_val(val: Dict, ind: str, code: str, daily: Dict, tsr_result: Optional[Dict] = None) -> Tuple[float,str]:
     s,dl=0,[]
     pp=val.get('pe_pct')
     if pp is not None:
@@ -366,11 +410,18 @@ def score_val(val: Dict, ind: str, code: str, daily: Dict) -> Tuple[float,str]:
     if bp is not None:
         if bp<10: s+=10; dl.append(f"PB分位{bp}% 极度低估 +10")
         elif bp<20: s+=7; dl.append(f"PB分位{bp}% 低估 +7")
-    dy=val.get('div_yield')
-    if dy:
-        if dy>5: s+=5; dl.append(f"股息率{dy}% 极具吸引力 +5")
-        elif dy>3: s+=3; dl.append(f"股息率{dy}% 有吸引力 +3")
-        elif dy>1.5: s+=1; dl.append(f"股息率{dy}% 一般 +1")
+    
+    # v2.3: TSR综合股东回报率替代裸股息率（上限8分 vs 旧版5分）
+    if tsr_result:
+        ts, td = tsr_score(tsr_result)
+        s += ts
+        if td: dl.append(td)
+    else:
+        dy=val.get('div_yield')
+        if dy:
+            if dy>5: s+=5; dl.append(f"股息率{dy}% 极具吸引力 +5")
+            elif dy>3: s+=3; dl.append(f"股息率{dy}% 有吸引力 +3")
+            elif dy>1.5: s+=1; dl.append(f"股息率{dy}% 一般 +1")
     
     # 价格分位回退：当PE和PB分位均不可得时
     if pp is None and bp is None and daily:
@@ -474,8 +525,19 @@ def score_tech(daily: Dict, weekly: Dict) -> Tuple[float,str]:
     bp=daily.get('boll_pos',50)
     if bp<15: s+=5; dl.append("布林下轨 +5")
     elif bp<30: s+=3; dl.append("布林偏低位 +3")
+    # --- ADX 极端趋势检测 (v2.2) ---
+    ad= daily.get('adx',25); pd_= daily.get('di_plus',0); md=daily.get('di_minus',0)
     aw=weekly.get('adx',25); pw=weekly.get('di_plus',0); mw=weekly.get('di_minus',0)
+    # 日线 ADX 极端趋势惩罚：趋势过强时不宜猜底/追顶
+    if ad>50:   s-=5; dl.append(f"ADX={ad:.0f}>50 极端趋势 -5")
+    elif ad>40: s-=2; dl.append(f"ADX={ad:.0f}>40 强趋势 -2")
+    # 周线向上趋势奖励
     if aw>25 and pw>mw: s+=3; dl.append(f"周线向上(DI+>{mw:.0f}) +3")
+    # DI 比值分析：单边绝对主导时扣分
+    di_ratio = max(pd_,md)/min(pd_,md) if pd_>0 and md>0 else 0
+    if di_ratio>3 and ad>25:
+        dominant='多头' if pd_>md else '空头'
+        s-=2; dl.append(f"日线{dominant}绝对主导(DI比{di_ratio:.1f}:1) -2")
     if daily.get('obv_up'): s+=2; dl.append("OBV上升 +2")
     return min(s,20), ' | '.join(dl) if dl else '中性'
 
@@ -538,16 +600,44 @@ def analyze(holding: Dict) -> Dict:
         # 全生命周期回撤（周线优先，日线兜底）
         ath_info = fetch_all_time_high(code, is_etf)
         
-        vs,vd=score_val(val,ind,code,dt)
+        # ── v2.0: 价值陷阱质量检测 ──
+        vt_result = value_trap_detect(code, name, ind)
+        quality_coeff = vt_result.get('quality_coefficient', 1.0)
+        quality_score_val = vt_result.get('quality_score', 10)
+        
+        # ── v2.3: TSR综合股东回报率 ──
+        tsr_result = tsr_calculate(code, name, is_etf, price, val.get('div_yield'))
+        
+        # ── v2.3: AI叙事风险暴露度 ──
+        is_tech = ind in ('互联网科技',)
+        ai_exposure = ai_detect(code, name, ind, is_etf)
+        
+        # ── v2.3: 跨市场估值比价 (港股/跨境科技ETF) ──
+        cross_market = cm_get(code, is_etf, ind, val.get('pe'))
+        
+        # 估值温度计得分 × 质量系数（v2.3: 传入TSR结果）
+        vs,vd=score_val(val,ind,code,dt,tsr_result)
+        vs_adjusted = vs * quality_coeff
         cs,cd=score_cycle(dt,wt,ath_info)
         ts,td=score_tech(dt,wt)
         ks,kd=score_capital(code); ii,id_=score_ind(ind)
-        total=vs+cs+ts+ks+ii
+        # 新权重：质量20% + 估值25% + 周期20% + 技术15% + 资金10% + 行业10%
+        total=round(quality_score_val + vs_adjusted*25.0/30 + cs*20.0/25 + ts*15.0/20 + ks*10.0/15 + ii*10.0/10)
+        
+        # ── v2.3: AI风险折扣（仅对科技行业标的生效） ──
+        total_ai_adjusted, ai_discount_note = ai_apply(total, ai_exposure, is_tech)
+        
         res.update({'daily_ta':dt,'weekly_ta':wt,'val_data':val,'industry':ind,
             'ath_info':ath_info,
-            'scores':{'valuation':vs,'cycle':cs,'technical':ts,'capital':ks,'industry':ii},
+            'vt_result': vt_result,
+            'tsr_result': tsr_result,
+            'ai_exposure': ai_exposure,
+            'cross_market': cross_market,
+            'scores':{'quality': round(quality_score_val,1), 'valuation':vs,'valuation_adjusted': round(vs_adjusted,1), 'cycle':cs,'technical':ts,'capital':ks,'industry':ii},
             'details':{'valuation':vd,'cycle':cd,'technical':td,'capital':kd,'industry':id_},
-            'total_score':total})
+            'total_score': total,
+            'total_score_ai_adjusted': total_ai_adjusted,
+            'ai_discount_note': ai_discount_note})
     except Exception as e: res['error']=str(e)
     return res
 
@@ -556,9 +646,14 @@ def fmt(res: Dict) -> str:
     code,name,is_etf=res['code'],res['name'],res['is_etf']
     tag=' [ETF]' if is_etf else ''
     dt,wt,val,ind=res['daily_ta'],res['weekly_ta'],res['val_data'],res['industry']
-    sc,ds=res['scores'],res['details']; total=res['total_score']
+    sc,ds=res['scores'],res['details']
+    total_raw = res['total_score']
+    total_ai = res.get('total_score_ai_adjusted', total_raw)
+    ai_note = res.get('ai_discount_note', '')
+    total = total_ai  # 用AI调整后得分做评级
     rating='🟢 黄金收集区' if total>=80 else '🟢 可收集' if total>=70 else '🟡 观察' if total>=55 else '🟡 暂不收集' if total>=40 else '🔴 远离'
     price=dt.get('price',0)
+    tsr_res = res.get('tsr_result', {})
     lines=[
         f"\n{'='*70}",
         f" {name}{tag} ({code}) — 长期建仓评估",
@@ -567,13 +662,34 @@ def fmt(res: Dict) -> str:
         "【估值温度计】",
         f"  PE: {val.get('pe','N/A')} | 分位: {val.get('pe_pct','N/A')}%",
         f"  PB: {val.get('pb','N/A')} | 分位: {val.get('pb_pct','N/A')}%",
-        f"  股息率: {val.get('div_yield','N/A')}%",
-        f"  → {ds['valuation']}",
-        "",
-        "【周期位置】",
-        f"  52周: {dt['low_52w']:.2f} - {dt['high_52w']:.2f}",
-        f"  距高点: {dt['drawdown']:.1f}% | 距52周低点: +{dt['dist_low']:.1f}%",
     ]
+    
+    # v2.3: TSR综合股东回报率显示
+    if tsr_res and tsr_res.get('tsr', 0) > 0:
+        tsr_val = tsr_res.get('tsr', 0)
+        div_y = tsr_res.get('dividend_yield', 0)
+        buy_y = tsr_res.get('buyback_yield', 0)
+        if buy_y > 0.5:
+            lines.append(f"  TSR(综合回报): {tsr_val}% (股息{div_y}% + 回购{buy_y}%)")
+        else:
+            lines.append(f"  TSR(综合回报): {tsr_val}% (股息{div_y}%)")
+        lines.append(f"  → {tsr_res.get('tsr_rating', '')} | {tsr_res.get('source', '')}")
+    elif val.get('div_yield'):
+        lines.append(f"  股息率: {val['div_yield']}%")
+    
+    lines.append(f"  → {ds['valuation']}")
+    
+    # v2.3: 跨市场估值比价
+    cm = res.get('cross_market')
+    if cm and cm.get('spreads'):
+        lines.append("")
+        lines.append("【跨市场估值比价】")
+        lines.append(f"  {cm_fmt(cm)}")
+    
+    lines.append("")
+    lines.append("【周期位置】")
+    lines.append(f"  52周: {dt['low_52w']:.2f} - {dt['high_52w']:.2f}")
+    lines.append(f"  距高点: {dt['drawdown']:.1f}% | 距52周低点: +{dt['dist_low']:.1f}%")
     
     # 全生命周期回撤
     ath = res.get('ath_info')
@@ -600,44 +716,69 @@ def fmt(res: Dict) -> str:
     lines.append(f"  \u2192 {ds['industry']}")
     lines.append("")
     lines.append(f"{'\u2550'*70}")
-    lines.append(f" \u7efc\u5408\u5efa\u4ed3\u8bc4\u7ea7: {rating} ({total:.0f}/100)")
-    lines.append(f" \u4f30\u503c({sc['valuation']}) + \u5468\u671f({sc['cycle']}) + \u6280\u672f({sc['technical']}) + \u8d44\u91d1({sc['capital']}) + \u884c\u4e1a({sc['industry']})")
+    # v2.3: AI调整后的评分展示
+    if ai_note:
+        lines.append(f" \u7efc\u5408\u5efa\u4ed3\u8bc4\u7ea7: {rating} ({total:.0f}/100) [原始{total_raw:.0f}分, {ai_note}]")
+    else:
+        lines.append(f" \u7efc\u5408\u5efa\u4ed3\u8bc4\u7ea7: {rating} ({total:.0f}/100)")
+    vs_raw = sc.get('valuation', 0)
+    vs_adj = sc.get('valuation_adjusted', vs_raw)
+    qs_display = sc.get('quality', 10)
+    if abs(vs_adj - vs_raw) > 0.5:
+        lines.append(f" 质量({qs_display}) + 估值({vs_raw:.0f}→{vs_adj:.0f}) + 周期({sc['cycle']}) + 技术({sc['technical']}) + 资金({sc['capital']}) + 行业({sc['industry']})")
+    else:
+        lines.append(f" 质量({qs_display}) + 估值({sc['valuation']}) + 周期({sc['cycle']}) + 技术({sc['technical']}) + 资金({sc['capital']}) + 行业({sc['industry']})")
+    # v2.3: AI暴露度提示
+    ai_exp = res.get('ai_exposure', {})
+    if ai_exp and ai_exp.get('level') not in ('none', None):
+        level = ai_exp.get('level', '')
+        reason = ai_exp.get('reason', '')
+        lines.append(f" AI暴露: {level} — {reason}")
     lines.append(f"{'\u2550'*70}")
-    lines.append("")
     lines.append("\u3010\u5206\u6279\u5efa\u4ed3\u8ba1\u5212\u3011")
     lines.append(build_plan(price, dt, total))
     return '\n'.join(lines)
 
+def _get_effective_score(r: Dict) -> float:
+    """获取有效评分：AI调整后 > 原始"""
+    return r.get('total_score_ai_adjusted', r.get('total_score', 50))
+
 def summary(results: List[Dict], holdings: List[Dict]) -> str:
     scored=[r for r in results if 'error' not in r]
-    scored.sort(key=lambda x:x['total_score'],reverse=True)
+    scored.sort(key=_get_effective_score, reverse=True)
     lines=[
         f"\n{'='*70}",
         " 长期建仓组合总览",
         f"{'='*70}",
     ]
+    def _disp_score(r):
+        raw = r['total_score']
+        adj = r.get('total_score_ai_adjusted', raw)
+        if adj != raw:
+            return f"{raw:.0f}→{adj:.0f}分"
+        return f"{adj:.0f}分"
     lines.append("\n【当前可收集】(≥70)")
-    sc70=[s for s in scored if s['total_score']>=70]
+    sc70=[s for s in scored if _get_effective_score(s)>=70]
     if sc70:
         for i,s in enumerate(sc70):
             etf=' [ETF]' if s['is_etf'] else ''
-            lines.append(f"  {i+1}. 🟢 {s['name']}{etf} ({s['code']}) — {s['total_score']:.0f}分")
+            lines.append(f"  {i+1}. 🟢 {s['name']}{etf} ({s['code']}) — {_disp_score(s)}")
     else: lines.append("  (无)")
     lines.append("\n【观察等待】(55-69)")
-    sc55=[s for s in scored if 55<=s['total_score']<70]
+    sc55=[s for s in scored if 55<=_get_effective_score(s)<70]
     if sc55:
         for i,s in enumerate(sc55):
             etf=' [ETF]' if s['is_etf'] else ''
-            lines.append(f"  {i+1}. 🟡 {s['name']}{etf} ({s['code']}) — {s['total_score']:.0f}分")
+            lines.append(f"  {i+1}. 🟡 {s['name']}{etf} ({s['code']}) — {_disp_score(s)}")
     else: lines.append("  (无)")
     lines.append("\n【暂不收集/远离】(<55)")
-    sc_low=[s for s in scored if s['total_score']<55]
+    sc_low=[s for s in scored if _get_effective_score(s)<55]
     if sc_low:
         for i,s in enumerate(sc_low):
             etf=' [ETF]' if s['is_etf'] else ''
-            lines.append(f"  {i+1}. 🔴 {s['name']}{etf} ({s['code']}) — {s['total_score']:.0f}分")
+            lines.append(f"  {i+1}. 🔴 {s['name']}{etf} ({s['code']}) — {_disp_score(s)}")
     else: lines.append("  (无)")
-    avg=sum(s['total_score'] for s in scored)/len(scored) if scored else 50
+    avg=sum(_get_effective_score(s) for s in scored)/len(scored) if scored else 50
     lines.append(f"\n【整体建议】")
     lines.append(f"  平均评分: {avg:.0f}/100")
     if avg>=70: lines.append("  当前市场为长线资金提供了较好的收集窗口")

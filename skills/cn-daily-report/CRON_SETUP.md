@@ -6,7 +6,7 @@
 |--------|-----|
 | 时区 | Asia/Shanghai (北京时间) |
 | 飞书会话 ID | `oc_0d8760ab9b20345f32d4219973d4cc43` |
-| 报告输出目录 | `C:\Users\李正材\Desktop\持仓日报\` |
+| 报告输出目录 | `C:\Users\<USERNAME>\Desktop\持仓日报\` |
 
 ## 📋 定时任务列表
 
@@ -16,7 +16,7 @@
 - **功能**: 生成午间持仓快评，推送到飞书
 - **命令**: 
   ```
-  python C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py noon
+  python C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py noon
   ```
 
 ### 2. 晚间复盘
@@ -25,7 +25,7 @@
 - **功能**: 生成晚间持仓复盘，推送到飞书
 - **命令**: 
   ```
-  python C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py evening
+  python C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py evening
   ```
 
 ### 3. 紧急预警
@@ -34,7 +34,7 @@
 - **功能**: 扫描紧急预警，有预警时推送到飞书
 - **命令**: 
   ```
-  python C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py emergency
+  python C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py emergency
   ```
 
 ## 🔧 配置方法
@@ -63,19 +63,19 @@ openclaw cron list
 # 午间快评
 /cron add --name "📊 持仓午间快评" \
   --schedule "35 11 * * 1-5" \
-  --command "python C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py noon" \
+  --command "python C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py noon" \
   --timezone "Asia/Shanghai"
 
 # 晚间复盘
 /cron add --name "📊 持仓晚间复盘" \
   --schedule "30 15 * * 1-5" \
-  --command "python C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py evening" \
+  --command "python C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py evening" \
   --timezone "Asia/Shanghai"
 
 # 紧急预警
 /cron add --name "🚨 持仓紧急预警" \
   --schedule "0,30 9-15 * * 1-5" \
-  --command "python C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py emergency" \
+  --command "python C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py emergency" \
   --timezone "Asia/Shanghai"
 ```
 
@@ -104,21 +104,21 @@ openclaw cron list
     {
       "name": "📊 持仓午间快评",
       "schedule": "35 11 * * 1-5",
-      "command": "python C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py noon",
+      "command": "python C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py noon",
       "timezone": "Asia/Shanghai",
       "enabled": true
     },
     {
       "name": "📊 持仓晚间复盘",
       "schedule": "30 15 * * 1-5",
-      "command": "python C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py evening",
+      "command": "python C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py evening",
       "timezone": "Asia/Shanghai",
       "enabled": true
     },
     {
       "name": "🚨 持仓紧急预警",
       "schedule": "0,30 9-15 * * 1-5",
-      "command": "python C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py emergency",
+      "command": "python C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py emergency",
       "timezone": "Asia/Shanghai",
       "enabled": true
     }
@@ -134,24 +134,24 @@ openclaw cron list
 
 #### 创建批处理文件
 
-创建 `C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_noon.bat`:
+创建 `C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_noon.bat`:
 ```batch
 @echo off
-cd /d "C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts"
+cd /d "C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts"
 python run_report.py noon
 ```
 
-创建 `C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_evening.bat`:
+创建 `C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_evening.bat`:
 ```batch
 @echo off
-cd /d "C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts"
+cd /d "C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts"
 python run_report.py evening
 ```
 
-创建 `C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_emergency.bat`:
+创建 `C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_emergency.bat`:
 ```batch
 @echo off
-cd /d "C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts"
+cd /d "C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts"
 python run_report.py emergency
 ```
 
@@ -161,13 +161,13 @@ python run_report.py emergency
 
 ```powershell
 # 午间快评 - 每周一至周五 11:35
-schtasks /Create /TN "OpenClaw_持仓午间快评" /TR "C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_noon.bat" /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 11:35 /RU SYSTEM
+schtasks /Create /TN "OpenClaw_持仓午间快评" /TR "C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_noon.bat" /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 11:35 /RU SYSTEM
 
 # 晚间复盘 - 每周一至周五 15:30
-schtasks /Create /TN "OpenClaw_持仓晚间复盘" /TR "C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_evening.bat" /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 15:30 /RU SYSTEM
+schtasks /Create /TN "OpenClaw_持仓晚间复盘" /TR "C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_evening.bat" /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 15:30 /RU SYSTEM
 
 # 紧急预警 - 每周一至周五 9:00-15:00 每 30 分钟
-schtasks /Create /TN "OpenClaw_持仓紧急预警" /TR "C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_emergency.bat" /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 09:00 /DU 06:30 /RI 30 /RU SYSTEM
+schtasks /Create /TN "OpenClaw_持仓紧急预警" /TR "C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_emergency.bat" /SC WEEKLY /D MON,TUE,WED,THU,FRI /ST 09:00 /DU 06:30 /RI 30 /RU SYSTEM
 ```
 
 #### 验证任务
@@ -183,7 +183,7 @@ schtasks /Query /TN "OpenClaw_持仓紧急预警"
 ### 1. 手动测试报告生成
 
 ```powershell
-cd C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts
+cd C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts
 
 # 测试午间报告
 python run_report.py noon
@@ -212,12 +212,12 @@ python run_report.py emergency
 
 日志文件位置：
 ```
-C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\logs\
+C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\logs\
 ```
 
 查看最新日志：
 ```powershell
-Get-ChildItem "C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\logs\" -OrderBy LastWriteTimeDescending | Select-Object -First 1 | Get-Content
+Get-ChildItem "C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\logs\" -OrderBy LastWriteTimeDescending | Select-Object -First 1 | Get-Content
 ```
 
 ## 🔍 故障排查

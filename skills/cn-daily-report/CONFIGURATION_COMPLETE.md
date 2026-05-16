@@ -8,7 +8,7 @@
 | 飞书推送 | ✅ 已配置 | 会话 ID: `oc_0d8760ab9b20345f32d4219973d4cc43` |
 | 时区设置 | ✅ 已配置 | Asia/Shanghai (北京时间) |
 | 定时任务 | ✅ 已配置 | 3 个定时任务已就绪 |
-| 报告输出 | ✅ 已配置 | `C:\Users\李正材\Desktop\持仓日报\` |
+| 报告输出 | ✅ 已配置 | `C:\Users\<USERNAME>\Desktop\持仓日报\` |
 | 飞书测试 | ✅ 通过 | 测试消息已发送成功 |
 
 ---
@@ -57,18 +57,18 @@
 
 ```
 技能目录：
-C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\
+C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\
 
 报告目录：
-C:\Users\李正材\Desktop\持仓日报\
+C:\Users\<USERNAME>\Desktop\持仓日报\
   ├─ 持仓日报_2026-03-29_午间.md (测试)
   └─ 持仓日报_2026-03-29_晚间.md (测试)
 
 日志目录：
-C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\logs\
+C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\logs\
 
 配置文件：
-C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\config\settings.json
+C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\config\settings.json
 ```
 
 ---
@@ -107,7 +107,7 @@ C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\config\settings.js
 
 ```powershell
 # 午间快评
-cd C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts
+cd C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts
 python run_report.py noon
 
 # 晚间复盘
@@ -135,7 +135,7 @@ python run_report.py emergency
 📋 下午操作建议
 [表格形式展示各持仓建议]
 
-📄 完整报告：C:\Users\李正材\Desktop\持仓日报\持仓日报_2026-03-30_午间.md
+📄 完整报告：C:\Users\<USERNAME>\Desktop\持仓日报\持仓日报_2026-03-30_午间.md
 ```
 
 ### 晚间复盘（飞书消息）
@@ -156,7 +156,7 @@ python run_report.py emergency
 🎯 明日整体策略
 🟢 积极 (平均分 6.8): 可适当加仓
 
-📄 完整报告：C:\Users\李正材\Desktop\持仓日报\持仓日报_2026-03-30_晚间.md
+📄 完整报告：C:\Users\<USERNAME>\Desktop\持仓日报\持仓日报_2026-03-30_晚间.md
 ```
 
 ### 紧急预警（飞书消息）
@@ -202,7 +202,7 @@ python run_report.py emergency
 ### 查看日志
 ```powershell
 # 查看最新日志
-Get-ChildItem "C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\logs\" `
+Get-ChildItem "C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\logs\" `
   -OrderBy LastWriteTimeDescending | `
   Select-Object -First 1 | `
   Get-Content
@@ -217,7 +217,7 @@ Get-ChildItem "C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\log
 ### 更新持仓
 编辑文件：
 ```
-C:\Users\李正材\Desktop\The stocks and ETFs I bought.txt
+C:\Users\<USERNAME>\Desktop\The stocks and ETFs I bought.txt
 ```
 
 格式：

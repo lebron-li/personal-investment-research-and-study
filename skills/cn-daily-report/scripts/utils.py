@@ -13,7 +13,7 @@ import requests
 from bs4 import BeautifulSoup
 
 
-def read_holdings(file_path=r"C:\agent\03-portfolio-tools\my-holdings.txt"):
+def read_holdings(file_path=r"<YOUR_PORTFOLIO_FILE_PATH>"):
     """
     读取持仓文件，返回股票代码/ETF 代码列表
     
@@ -188,7 +188,7 @@ def get_report_filepath(report_type='午间', date=None):
         str: 完整文件路径
     """
     filename = get_report_filename(report_type, date)
-    return f"C:\\Users\\李正材\\Desktop\\持仓日报\\{filename}"
+    return f"C:\\Users\\<NAME>\\Desktop\\持仓日报\\{filename}"
 
 
 if __name__ == '__main__':

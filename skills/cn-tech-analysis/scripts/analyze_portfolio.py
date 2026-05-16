@@ -20,11 +20,38 @@ from typing import List, Dict, Tuple
 from datetime import datetime, timedelta
 
 # 持仓文件路径
-PORTFOLIO_FILE = r"C:\agent\03-portfolio-tools\my-holdings.txt"
+PORTFOLIO_FILE = r"<YOUR_PORTFOLIO_FILE_PATH>"
 
 # 重试配置
 MAX_RETRIES = 3
 RETRY_DELAY = 3  # 秒
+
+# 周期行业集合 — 这些行业盈利波动极大，纯技术面评分可靠性低
+CYCLICAL_INDUSTRIES = {
+    '畜牧业', '养殖业', '生猪养殖', '家禽养殖',
+    '钢铁', '有色金属', '稀有金属', '工业金属',
+    '化工', '化学制品', '化学原料', '化学纤维', '农药', '化肥',
+    '煤炭', '石油石化', '油气开采', '炼化',
+    '航运', '港口航运', '海运',
+    '造纸', '水泥', '玻璃', '建材',
+    '半导体', '面板', '存储芯片',  # 强周期科技
+    '房地产', '房地产开发',
+}
+
+# 行业映射（本地兜底 + akshare 补充）
+INDUSTRY_MAP = {
+    '600036': '银行', '600900': '电力', '002714': '畜牧业',
+    '601166': '银行', '000333': '家电', '000858': '白酒',
+    '601318': '保险', '600519': '白酒', '300750': '锂电池',
+    '601899': '有色金属', '600585': '水泥', '600019': '钢铁',
+    '515170': 'ETF-食品饮料', '515120': 'ETF-创新药', '513130': 'ETF-恒生科技',
+}
+
+# KD 临界阈值：K/D 差值小于此值时标记为不稳定信号
+KD_CRITICAL_THRESHOLD = 3.0
+
+# MACD 水下金叉判断：DIF 和 DEA 均小于此值时视为弱势金叉
+MACD_WEAK_CROSS_THRESHOLD = 0.0
 
 
 def parse_portfolio_file(filepath: str) -> List[Dict[str, str]]:
@@ -51,35 +78,50 @@ def parse_portfolio_file(filepath: str) -> List[Dict[str, str]]:
 
 
 def get_stock_fundamentals(code: str) -> Dict:
-    """获取股票基本面数据（PE、PB、行业等） - 简化版"""
+    """获取股票基本面数据（PE、PB、行业等）"""
+    result = {'pe': None, 'pb': None, 'industry': INDUSTRY_MAP.get(code, '未知'), 'market_cap': '未知'}
+
+    # 尝试从东方财富获取实时 PE/PB
     try:
-        import akshare as ak
-        
-        # 使用个股估值数据
-        try:
-            # 获取实时行情，包含 PE/PB
-            stock_data = ak.stock_zh_a_daily(symbol=f"sh{code}" if code.startswith('6') else f"sz{code}", start_date="20260301", end_date="20260312")
-            if stock_data is not None and len(stock_data) > 0:
-                # 尝试从其他接口获取 PE/PB
+        import requests as req
+        s = req.Session()
+        s.trust_env = False
+
+        market_id = '1' if code.startswith('6') else '0'
+        url = 'https://push2.eastmoney.com/api/qt/stock/get'
+        params = {
+            'secid': f'{market_id}.{code}',
+            'fields': 'f57,f58,f162,f167,f43,f169,f170,f100,f117',
+            'ut': 'fa5fd1943c7b386f172d6893dbbd4c0f'
+        }
+        r = s.get(url, params=params, timeout=8)
+        if r.status_code == 200:
+            data = r.json()
+            if data.get('data'):
+                d = data['data']
+                pe_val = d.get('f162')
+                pb_val = d.get('f167')
+                if pe_val and pe_val != '-':
+                    result['pe'] = float(pe_val)
+                if pb_val and pb_val != '-':
+                    result['pb'] = float(pb_val)
+
+        # 行业信息补充
+        if result['industry'] == '未知':
+            try:
+                import akshare as ak
+                info = ak.stock_individual_info_em(symbol=code)
+                if info is not None and len(info) > 0:
+                    for _, row in info.iterrows():
+                        if row['item'] == '行业':
+                            result['industry'] = row['value']
+                            break
+            except:
                 pass
-        except:
-            pass
-        
-        # 备用：返回行业信息
-        industry_map = {
-            '600036': '银行', '600900': '电力', '000333': '家电',
-            '515170': 'ETF-食品饮料', '515120': 'ETF-创新药'
-        }
-        
-        return {
-            'pe': None,  # 暂时不获取，避免网络超时
-            'pb': None,
-            'industry': industry_map.get(code, '未知'),
-            'market_cap': '未知'
-        }
-            
-    except Exception as e:
-        return {'pe': None, 'pb': None, 'industry': '未知', 'market_cap': '未知'}
+    except:
+        pass
+
+    return result
 
 
 def calculate_ta_indicators(df: pd.DataFrame) -> Dict:
@@ -492,7 +534,49 @@ def identify_technical_patterns(data: Dict) -> List[Dict]:
             'confidence': '高'
         })
     
-    # 7. 综合共振
+    # 7. 水下金叉警示
+    if data['macd_dif'] > data['macd_dea'] and data['macd_hist'] > 0:
+        if data['macd_dif'] < 0 and data['macd_dea'] < 0:
+            patterns.append({
+                'name': 'MACD 水下金叉 (弱势)',
+                'type': 'neutral',
+                'description': 'DIF/DEA 均在零轴下方，金叉信号可靠性较低',
+                'action': '可关注但不宜重仓，需等站上零轴确认',
+                'confidence': '中低'
+            })
+
+    # 8. KD 临界状态
+    kd_diff = abs(data['kd_k'] - data['kd_d'])
+    if kd_diff < KD_CRITICAL_THRESHOLD:
+        patterns.append({
+            'name': f'KD 临界状态 (差值仅{kd_diff:.1f})',
+            'type': 'neutral',
+            'description': 'K/D 差值极小，当前金叉/死叉信号不稳定，极易翻转',
+            'action': '不宜据此做出操作决策，等待差值扩大再判断',
+            'confidence': '高'
+        })
+
+    # 9. 量价背离
+    if data.get('obv_change5', 0) < -20 and data.get('change_pct', 0) > 0:
+        patterns.append({
+            'name': '量价背离 (价涨量缩)',
+            'type': 'warning',
+            'description': '价格上涨但成交量萎缩，上涨缺乏资金支撑',
+            'action': '警惕假突破，不宜追高',
+            'confidence': '中高'
+        })
+
+    # 10. 周期股标记
+    if data.get('is_cyclical', False):
+        patterns.append({
+            'name': '周期股技术信号折扣',
+            'type': 'warning',
+            'description': '强周期行业，纯技术面信号在周期底部/顶部的可靠性显著降低',
+            'action': '技术分析仅作择时参考，核心决策应基于产业周期（产能/价格/库存）',
+            'confidence': '高'
+        })
+
+    # 11. 综合共振
     bullish_count = sum(1 for p in patterns if p['type'] == 'bullish')
     bearish_count = sum(1 for p in patterns if p['type'] == 'bearish')
     
@@ -517,81 +601,191 @@ def identify_technical_patterns(data: Dict) -> List[Dict]:
 
 
 def calculate_score(data: Dict) -> Tuple[int, str, float, List[str]]:
-    """计算综合评分和置信度"""
+    """计算综合评分和置信度
+
+    v3.1 新增：周期股降权 / KD临界 / 水下金叉 / MA60惩罚 / 量价背离
+    """
     score = 50
     signals = []
-    
+    downgrade_reasons = []
+
     has_price = data.get('price', 0) > 0
     has_ma = data.get('ma5', 0) > 0 or data.get('ma10', 0) > 0
-    
+
     if not has_price and not has_ma:
         return 1, '数据不足', 20, ['❌ 数据获取失败']
-    
+
     if not has_price and has_ma:
         data['price'] = data.get('ma5', data.get('ma10', 1.0))
-    
-    # 均线
+
+    industry = data.get('industry', '')
+    is_cyclical = data.get('is_cyclical', False)
+    if not is_cyclical and industry:
+        is_cyclical = any(c in industry for c in CYCLICAL_INDUSTRIES)
+        data['is_cyclical'] = is_cyclical
+
+    # === 均线系统 ===
     if data['price'] > data['ma5'] > 0: score += 5; signals.append('✅ 站上 MA5')
     else: score -= 5; signals.append('❌ 跌破 MA5')
     if data['price'] > data['ma10'] > 0: score += 5; signals.append('✅ 站上 MA10')
     else: score -= 5
     if data['price'] > data['ma20'] > 0: score += 5; signals.append('✅ 站上 MA20')
     else: score -= 5
-    
-    # MACD
-    if data['macd_hist'] > 0: score += 10; signals.append('✅ MACD 多头')
+
+    # MA60 长周期验证
+    ma60 = data.get('ma60', 0)
+    if ma60 > 0:
+        if data['price'] > ma60:
+            score += 3; signals.append('✅ 站上 MA60 (长多确认)')
+        else:
+            score -= 5; signals.append('⚠️ MA60 上方压制 (未收复)')
+            downgrade_reasons.append('MA60未收复')
+
+    # === MACD ===
+    dif = data['macd_dif']
+    dea = data['macd_dea']
+    hist = data['macd_hist']
+    is_macd_bull = hist > 0
+    is_macd_cross_up = dif > dea
+    is_weak_golden_cross = is_macd_cross_up and dif < MACD_WEAK_CROSS_THRESHOLD and dea < MACD_WEAK_CROSS_THRESHOLD
+
+    if is_macd_bull: score += 10; signals.append('✅ MACD 多头')
     else: score -= 10; signals.append('❌ MACD 空头')
-    if data['macd_dif'] > data['macd_dea']: score += 5; signals.append('✅ MACD 金叉')
-    else: score -= 5
-    
-    # RSI
-    if 50 <= data['rsi14'] <= 70: score += 5; signals.append('✅ RSI 中性偏多')
-    elif data['rsi14'] > 70: score -= 5; signals.append('❌ RSI 超买')
-    elif data['rsi14'] < 30: score += 10; signals.append('✅ RSI 超卖')
-    
-    # KD
-    if data['kd_k'] > data['kd_d']: score += 8; signals.append('✅ KD 金叉')
-    else: score -= 8; signals.append('❌ KD 死叉')
-    
-    # 资金
-    if data.get('main_force_net', 0) > 0:
-        score += 10
-        signals.append(f"✅ 主力净流入{data['main_force_net']:.2f}亿")
-    elif data.get('main_force_net', 0) < 0:
-        score -= 10
-        signals.append(f"❌ 主力净流出{abs(data.get('main_force_net', 0)):.2f}亿")
+
+    if is_macd_cross_up:
+        if is_weak_golden_cross:
+            score += 2; signals.append('⚠️ MACD 水下金叉 (弱势，降权)')
+            downgrade_reasons.append('MACD水下金叉')
+        else:
+            score += 5; signals.append('✅ MACD 金叉')
+    else:
+        score -= 5
+
+    # === RSI ===
+    rsi = data['rsi14']
+    if 50 <= rsi <= 70: score += 5; signals.append('✅ RSI 中性偏多')
+    elif rsi > 70: score -= 5; signals.append('❌ RSI 超买')
+    elif rsi < 30: score += 10; signals.append('✅ RSI 超卖')
+
+    # === KD（含临界检测） ===
+    kd_k = data['kd_k']
+    kd_d = data['kd_d']
+    kd_diff = abs(kd_k - kd_d)
+    kd_is_golden = kd_k > kd_d
+
+    if kd_is_golden:
+        if kd_diff < KD_CRITICAL_THRESHOLD:
+            score += 2; signals.append(f'⚠️ KD 临界金叉 (差值仅{kd_diff:.1f}，信号不稳)')
+            downgrade_reasons.append(f'KD临界({kd_diff:.1f})')
+        else:
+            score += 8; signals.append('✅ KD 金叉')
+    else:
+        if kd_diff < KD_CRITICAL_THRESHOLD:
+            score -= 2; signals.append(f'⚠️ KD 临界死叉 (差值仅{kd_diff:.1f}，信号不稳)')
+            downgrade_reasons.append(f'KD临界({kd_diff:.1f})')
+        else:
+            score -= 8; signals.append('❌ KD 死叉')
+
+    # === 量价背离检测 ===
+    obv5 = data.get('obv_change5', 0)
+    change_pct = data.get('change_pct', 0)
+    if obv5 < -20 and change_pct > 0:
+        score -= 8; signals.append('🔴 量价背离 (价涨量缩)')
+        downgrade_reasons.append('量价背离')
+    elif obv5 > 20 and change_pct < -2:
+        score += 5; signals.append('🟢 量价背离 (价跌量增，底部承接)')
+    elif obv5 > 0:
+        score += 5; signals.append('✅ OBV 上升')
+    else:
+        score -= 5; signals.append('❌ OBV 下降')
+
+    # === 资金流向 ===
+    main_net = data.get('main_force_net', 0)
+    if main_net > 0:
+        score += 10; signals.append(f"✅ 主力净流入{main_net:.2f}亿")
+    elif main_net < 0:
+        score -= 10; signals.append(f"❌ 主力净流出{abs(main_net):.2f}亿")
     else:
         signals.append('⚪ 资金平衡')
-    
-    # OBV
-    if data.get('obv_change5', 0) > 0: score += 5; signals.append('✅ OBV 上升')
-    else: score -= 5
-    
-    # ADX
-    if data.get('adx', 0) > 0:
-        if data['adx'] < 25:
+
+    # === ADX ===
+    adx = data.get('adx', 0)
+    di_plus = data.get('di_plus', 0)
+    di_minus = data.get('di_minus', 0)
+    if adx > 0:
+        # DI 比值分析
+        di_ratio = max(di_plus, di_minus) / min(di_plus, di_minus) if di_plus > 0 and di_minus > 0 else 0
+        
+        if adx > 50:
+            signals.append(f'🔴 极端趋势 (ADX={adx:.0f}>50)，不宜猜顶/抄底')
+            downgrade_reasons.append(f'极端趋势(ADX={adx:.0f})')
+            score = int(score * 0.85)
+        elif adx >= 40:
+            signals.append(f'🟡 强趋势 (ADX={adx:.0f})，注意趋势惯性')
+        elif adx < 25:
             signals.append('⚠️ 震荡市 (ADX<25)')
+            downgrade_reasons.append('震荡市')
             score = int(score * 0.9)
         else:
-            signals.append('✅ 趋势市 (ADX>25)')
-    
-    # 基本面加分
-    if data.get('pe') is not None:
-        if data['pe'] < 15: score += 5; signals.append('✅ 低估值 (PE<15)')
-        elif data['pe'] > 50: score -= 5; signals.append('❌ 高估值 (PE>50)')
-    
-    if data.get('pb') is not None:
-        if data['pb'] < 1.5: score += 3; signals.append('✅ 低 PB')
-        elif data['pb'] > 5: score -= 3; signals.append('❌ 高 PB')
-    
+            trend_type = '多头' if di_plus > di_minus else '空头'
+            signals.append(f'✅ 趋势市 (ADX={adx:.0f}, {trend_type}主导)')
+        
+        if di_ratio > 3:
+            dominant = '多头' if di_plus > di_minus else '空头'
+            signals.append(f'⚠️ {dominant}绝对主导(DI比值={di_ratio:.1f}:1)')
+            if adx > 50:
+                downgrade_reasons.append(f'{dominant}绝对主导')
+
+    # === 周期股特殊处理 ===
+    if is_cyclical:
+        pe = data.get('pe')
+        cycle_penalty = 0
+        cycle_reason = []
+
+        if pe is not None and pe > 50:
+            cycle_penalty += 10
+            cycle_reason.append(f'PE={pe:.0f}极高(周期底部盈利缩水)')
+        elif pe is not None and pe < 0:
+            cycle_penalty += 12
+            cycle_reason.append('PE为负(亏损期)')
+
+        cycle_penalty += 8
+        cycle_reason.append('周期股技术信号可靠性折扣')
+
+        score -= cycle_penalty
+        signals.append(f'⚠️ 周期股降权 (-{cycle_penalty}): {", ".join(cycle_reason)}')
+        downgrade_reasons.extend(cycle_reason)
+
+    # === 基本面估值 ===
+    pe = data.get('pe')
+    pb = data.get('pb')
+    if pe is not None and not is_cyclical:
+        if pe < 15: score += 5; signals.append('✅ 低估值 (PE<15)')
+        elif pe > 50: score -= 5; signals.append('❌ 高估值 (PE>50)')
+    if pb is not None:
+        if pb < 1.5: score += 3; signals.append('✅ 低 PB')
+        elif pb > 5: score -= 3; signals.append('❌ 高 PB')
+
+    # === 多重风险叠加 ===
+    if len(downgrade_reasons) >= 3:
+        extra_penalty = len(downgrade_reasons) * 3
+        score -= extra_penalty
+        signals.append(f'⚠️ 多重风险叠加({len(downgrade_reasons)}项): {", ".join(downgrade_reasons[:4])}')
+
     score = max(0, min(100, score))
-    
-    if score >= 85: rating, conf = '强烈看多', 85 + (score-85)*0.4
-    elif score >= 70: rating, conf = '偏多', 70 + (score-70)*0.6
-    elif score >= 55: rating, conf = '中性', 50 + (score-55)
-    elif score >= 40: rating, conf = '偏空', 35 + (score-40)*0.6
-    else: rating, conf = '强烈看空', 15 + score*0.5
-    
+
+    # === 评级与置信度 ===
+    if score >= 85: rating, conf = '强烈看多', 85 + (score - 85) * 0.4
+    elif score >= 70: rating, conf = '偏多', 70 + (score - 70) * 0.6
+    elif score >= 55: rating, conf = '中性', 50 + (score - 55)
+    elif score >= 40: rating, conf = '偏空', 35 + (score - 40) * 0.6
+    else: rating, conf = '强烈看空', 15 + score * 0.5
+
+    if is_cyclical:
+        conf = max(conf * 0.85, 30)
+    if len(downgrade_reasons) >= 2:
+        conf = max(conf * 0.9, 25)
+
     return score, rating, conf, signals
 
 
@@ -651,7 +845,15 @@ def generate_recommendations(data: Dict, score: int, conf: float, patterns: List
     if data.get('boll_upper', 0) > 0 and data['price'] > data['boll_upper'] * 0.98:
         rec['risks'].append('⚠️ 接近布林上轨，可能回调')
     if data.get('main_force_net', 0) < -1: rec['risks'].append('⚠️ 主力大幅流出')
-    if data.get('pe') is not None and data['pe'] > 50: rec['risks'].append('⚠️ 高估值，注意回调风险')
+    if data.get('pe') is not None and data['pe'] > 50 and not data.get('is_cyclical'):
+        rec['risks'].append('⚠️ 高估值，注意回调风险')
+    if data.get('is_cyclical', False):
+        rec['risks'].append('⚠️ 周期股：技术面信号可靠性打折，核心看产业周期')
+    if data.get('obv_change5', 0) < -20 and data.get('change_pct', 0) > 0:
+        rec['risks'].append('⚠️ 量价背离：价涨量缩，上涨动力不足')
+    kd_diff = abs(data.get('kd_k', 50) - data.get('kd_d', 50))
+    if kd_diff < KD_CRITICAL_THRESHOLD:
+        rec['risks'].append(f'⚠️ KD临界(差值{kd_diff:.1f})：金叉/死叉信号不可靠')
     
     return rec
 

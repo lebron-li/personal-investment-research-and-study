@@ -87,7 +87,7 @@ cn-daily-report/
 ## 配置说明
 
 ### 持仓文件
-路径：`C:\Users\李正材\Desktop\The stocks and ETFs I bought.txt`
+路径：`C:\Users\<USERNAME>\Desktop\The stocks and ETFs I bought.txt`
 格式：
 ```
 1、食品饮料 ETF 515170
@@ -96,7 +96,7 @@ cn-daily-report/
 ```
 
 ### 报告输出
-路径：`C:\Users\李正材\Desktop\持仓日报\`
+路径：`C:\Users\<USERNAME>\Desktop\持仓日报\`
 命名：`持仓日报_YYYY-MM-DD_午间.md` / `持仓日报_YYYY-MM-DD_晚间.md`
 
 ### 飞书推送

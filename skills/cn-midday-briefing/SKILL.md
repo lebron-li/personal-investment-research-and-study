@@ -128,7 +128,7 @@ metadata:
 
 ### 方式 2：命令行运行
 ```powershell
-cd C:\Users\李正材\.openclaw\workspace\skills\cn-midday-briefing\scripts
+cd C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-midday-briefing\scripts
 python midday_briefing.py
 ```
 
@@ -185,3 +185,7 @@ cn-midday-briefing/
   - ✅ **数据校验层**：新增 `validate_data()` 函数，检测前收盘价偏差过大、涨跌幅为0等数据异常
   - ✅ **上午动量评分**：`calculate_score()` 新增 `morning_momentum` 参数，放量上涨+15分、放量下跌-15分、缩量上涨-5分等
   - ✅ **去同质化**：当全部标的评分<55时，强制将评分最高的2只上调为"观望"，避免全员"谨慎"
+- 2026-05-12 v1.2:
+  - ✅ **修复交易日误判bug**：`is_trading_day()` 不再因东方财富 API 不可用就判为"休市"。新增腾讯行情、新浪行情两层兜底验证，三层全挂则假定交易日让后续逻辑兜底
+  - ✅ **分时数据多源兜底**：`fetch_intraday_5min()` 新增新浪财经 5 分钟K线兜底（`_try_sina_intraday()`），东方财富不可用时自动切换
+  - ✅ **近5日量能降级处理**：`fetch_recent_5min()` 东方财富失败后安静返回 None，量能对比降级为"无数据"而非中断分析

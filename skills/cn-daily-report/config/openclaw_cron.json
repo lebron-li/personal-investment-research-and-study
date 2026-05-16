@@ -10,9 +10,9 @@
       },
       "command": {
         "type": "python",
-        "script": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py",
+        "script": "C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py",
         "args": ["noon"],
-        "working_dir": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts"
+        "working_dir": "C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts"
       },
       "conditions": {
         "trading_day_only": true,
@@ -34,9 +34,9 @@
       },
       "command": {
         "type": "python",
-        "script": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py",
+        "script": "C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py",
         "args": ["evening"],
-        "working_dir": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts"
+        "working_dir": "C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts"
       },
       "conditions": {
         "trading_day_only": true,
@@ -58,9 +58,9 @@
       },
       "command": {
         "type": "python",
-        "script": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py",
+        "script": "C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py",
         "args": ["emergency"],
-        "working_dir": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts"
+        "working_dir": "C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts"
       },
       "conditions": {
         "trading_day_only": true,
@@ -78,7 +78,7 @@
   "global_settings": {
     "timezone": "Asia/Shanghai",
     "python_path": "python",
-    "log_dir": "C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\logs",
+    "log_dir": "C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\logs",
     "max_retries": 3,
     "retry_delay_seconds": 60
   }

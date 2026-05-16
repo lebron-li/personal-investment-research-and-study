@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "估值模型方法论": {
+      "name": "估值模型方法论",
+      "zip_url": "http://ms.10jqka.com.cn/gateway/market/api/v1/skills/square/download?name=%E4%BC%B0%E5%80%BC%E6%A8%A1%E5%9E%8B%E6%96%B9%E6%B3%95%E8%AE%BA",
+      "source": "skillhub",
+      "version": ""
+    },
+    "report-search": {
+      "name": "report-search",
+      "zip_url": "http://ms.10jqka.com.cn/gateway/market/api/v1/skills/square/download?name=report-search",
+      "source": "skillhub",
+      "version": ""
+    },
+    "hithink-macro-query": {
+      "name": "hithink-macro-query",
+      "zip_url": "http://ms.10jqka.com.cn/gateway/market/api/v1/skills/square/download?name=hithink-macro-query",
+      "source": "skillhub",
+      "version": ""
+    }
+  }
+}

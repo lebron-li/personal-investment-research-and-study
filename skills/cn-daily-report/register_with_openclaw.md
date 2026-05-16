@@ -5,15 +5,15 @@
 在你的 OpenClaw 聊天窗口中，依次发送以下消息：
 
 ```
-/cron add 📊 持仓午间快评 "35 11 * * 1-5" "python C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py noon" --timezone Asia/Shanghai
+/cron add 📊 持仓午间快评 "35 11 * * 1-5" "python C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py noon" --timezone Asia/Shanghai
 ```
 
 ```
-/cron add 📊 持仓晚间复盘 "30 15 * * 1-5" "python C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py evening" --timezone Asia/Shanghai
+/cron add 📊 持仓晚间复盘 "30 15 * * 1-5" "python C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py evening" --timezone Asia/Shanghai
 ```
 
 ```
-/cron add 🚨 持仓紧急预警 "0,30 9-15 * * 1-5" "python C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py emergency" --timezone Asia/Shanghai
+/cron add 🚨 持仓紧急预警 "0,30 9-15 * * 1-5" "python C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py emergency" --timezone Asia/Shanghai
 ```
 
 然后验证：
@@ -42,7 +42,7 @@
 
 ✅ **时区**: Asia/Shanghai (北京时间)  
 ✅ **飞书会话 ID**: `oc_0d8760ab9b20345f32d4219973d4cc43`  
-✅ **报告目录**: `C:\Users\李正材\Desktop\持仓日报\`
+✅ **报告目录**: `C:\Users\<USERNAME>\Desktop\持仓日报\`
 
 ### 定时任务详情
 

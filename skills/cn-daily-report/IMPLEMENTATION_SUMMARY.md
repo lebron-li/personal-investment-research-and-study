@@ -40,7 +40,7 @@
 ## 📁 文件结构
 
 ```
-C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\
+C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\
 ├── SKILL.md
 ├── README.md
 ├── IMPLEMENTATION_SUMMARY.md (本文件)
@@ -61,7 +61,7 @@ C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\
 └── config/
     └── settings.json
 
-C:\Users\李正材\Desktop\持仓日报\
+C:\Users\<USERNAME>\Desktop\持仓日报\
 ├── 持仓日报_2026-03-29_午间.md
 └── 持仓日报_2026-03-29_晚间.md
 ```
@@ -82,7 +82,7 @@ C:\Users\李正材\Desktop\持仓日报\
 ### 方式 2：命令行运行
 
 ```powershell
-cd C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts
+cd C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts
 
 # 午间报告
 python run_report.py noon
@@ -112,21 +112,21 @@ python run_report.py emergency
     {
       "name": "持仓午间快评",
       "schedule": "35 11 * * 1-5",
-      "command": "python C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py noon",
+      "command": "python C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py noon",
       "enabled": true,
       "description": "每个交易日 11:35 生成午间快评"
     },
     {
       "name": "持仓晚间复盘",
       "schedule": "30 15 * * 1-5",
-      "command": "python C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py evening",
+      "command": "python C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py evening",
       "enabled": true,
       "description": "每个交易日 15:30 生成晚间复盘"
     },
     {
       "name": "紧急预警扫描",
       "schedule": "*/30 9-15 * * 1-5",
-      "command": "python C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py emergency",
+      "command": "python C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py emergency",
       "enabled": true,
       "description": "交易时段每 30 分钟扫描紧急预警"
     }
@@ -148,8 +148,8 @@ python run_report.py emergency
 
 3. 每个任务的"操作"设置：
    - 程序：`python.exe`（填写完整路径，如 `C:\Python310\python.exe`）
-   - 参数：`C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py noon`（或 evening/emergency）
-   - 起始于：`C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts`
+   - 参数：`C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py noon`（或 evening/emergency）
+   - 起始于：`C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts`
 
 ---
 
@@ -278,7 +278,7 @@ python run_report.py emergency
 
 ### 修改持仓
 
-编辑：`C:\Users\李正材\Desktop\The stocks and ETFs I bought.txt`
+编辑：`C:\Users\<USERNAME>\Desktop\The stocks and ETFs I bought.txt`
 
 格式：
 ```
@@ -319,7 +319,7 @@ python run_report.py emergency
 ✅ **完整报告测试**（test_full_report.py）
 - 午间报告：生成成功，600 字符
 - 晚间报告：生成成功，1378 字符
-- 文件保存：`C:\Users\李正材\Desktop\持仓日报\`
+- 文件保存：`C:\Users\<USERNAME>\Desktop\持仓日报\`
 
 ---
 

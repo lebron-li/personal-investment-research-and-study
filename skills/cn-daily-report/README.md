@@ -20,7 +20,7 @@ pip install pandas numpy requests beautifulsoup4
 
 ```powershell
 # 测试午间报告
-cd C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts
+cd C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts
 python run_report.py noon
 
 # 测试晚间报告
@@ -44,19 +44,19 @@ python run_report.py emergency
     {
       "name": "持仓午间快评",
       "schedule": "35 11 * * 1-5",
-      "command": "python C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py noon",
+      "command": "python C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py noon",
       "enabled": true
     },
     {
       "name": "持仓晚间复盘",
       "schedule": "30 15 * * 1-5",
-      "command": "python C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py evening",
+      "command": "python C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py evening",
       "enabled": true
     },
     {
       "name": "紧急预警扫描",
       "schedule": "*/30 9-15 * * 1-5",
-      "command": "python C:\\Users\\李正材\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py emergency",
+      "command": "python C:\\Users\\<NAME>\\.openclaw\\workspace\\skills\\cn-daily-report\\scripts\\run_report.py emergency",
       "enabled": true
     }
   ]
@@ -75,8 +75,8 @@ python run_report.py emergency
 3. 设置触发器（交易日 11:35 和 15:30）
 4. 设置操作：启动程序
    - 程序：`python.exe`
-   - 参数：`C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py noon`
-   - 起始于：`C:\Users\李正材\.openclaw\workspace\skills\cn-daily-report\scripts`
+   - 参数：`C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts\run_report.py noon`
+   - 起始于：`C:\Users\<USERNAME>\.openclaw\workspace\skills\cn-daily-report\scripts`
 
 ### 4. 配置飞书推送（可选）
 
@@ -122,7 +122,7 @@ cn-daily-report/
 
 ### 本地报告
 
-路径：`C:\Users\李正材\Desktop\持仓日报\`
+路径：`C:\Users\<USERNAME>\Desktop\持仓日报\`
 
 文件命名：
 - `持仓日报_2026-03-30_午间.md`
@@ -177,7 +177,7 @@ cn-daily-report/
 
 ### 修改持仓文件
 
-编辑：`C:\Users\李正材\Desktop\The stocks and ETFs I bought.txt`
+编辑：`C:\Users\<USERNAME>\Desktop\The stocks and ETFs I bought.txt`
 
 格式：
 ```
@@ -263,4 +263,4 @@ cn-daily-report/
 如有问题，请查看：
 - 技能文档：`SKILL.md`
 - 自测脚本：`python test_all.py`
-- 日志文件：`C:\Users\李正材\Desktop\持仓日报\`
+- 日志文件：`C:\Users\<USERNAME>\Desktop\持仓日报\`

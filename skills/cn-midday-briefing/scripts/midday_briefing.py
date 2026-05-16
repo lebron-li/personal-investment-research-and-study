@@ -23,8 +23,8 @@ from ta_utils import calculate_ta_indicators, calculate_score, get_top_signals
 # 路径配置
 SCRIPT_DIR = Path(__file__).parent
 SKILL_DIR = SCRIPT_DIR.parent
-PORTFOLIO_FILE = Path(r"C:\agent\03-portfolio-tools\my-holdings.txt")
-OUTPUT_DIR = Path(r"C:\agent\07-investment-suggestion\short-term-builder-weekly")
+PORTFOLIO_FILE = Path(r"<YOUR_PORTFOLIO_FILE_PATH>")
+OUTPUT_DIR = Path(r"C:\agent\07-investment-suggestion\midday-report-daily")
 STATE_FILE = SCRIPT_DIR / "midday_state.json"
 
 # 重试配置
@@ -215,7 +215,7 @@ def fetch_daily_kline(code: str, start_date: str, end_date: str, is_etf: bool = 
 
 
 def fetch_intraday_5min(code: str, is_etf: bool = False) -> Optional[pd.DataFrame]:
-    """获取当天分时K线 — 优先5分钟，兜底1分钟"""
+    """获取当天分时K线 — 东方财富5min → 东方财富1min → 新浪5min"""
     today = datetime.now().strftime('%Y%m%d')
     if is_etf:
         secid = f'1.{code}'
@@ -223,21 +223,64 @@ def fetch_intraday_5min(code: str, is_etf: bool = False) -> Optional[pd.DataFram
         market_id = '1' if code.startswith('6') else '0'
         secid = f'{market_id}.{code}'
 
-    # 尝试 5 分钟K线
+    # 源1: 东方财富 5 分钟K线
     df = _try_eastmoney_kline(secid, today, today, klt='5')
     if df is not None and len(df) > 0:
         return df
 
-    # 兜底：1 分钟K线
+    # 源2: 东方财富 1 分钟K线
     df = _try_eastmoney_kline(secid, today, today, klt='1')
+    if df is not None and len(df) > 0:
+        return df
+
+    # 源3: 新浪财经 5 分钟K线
+    df = _try_sina_intraday(code)
     if df is not None and len(df) > 0:
         return df
 
     return None
 
 
+def _try_sina_intraday(code: str) -> Optional[pd.DataFrame]:
+    """兜底：新浪财经 5 分钟K线（重试3次）"""
+    market = 'sh' if code.startswith('6') else 'sz'
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    for attempt in range(3):
+        try:
+            s = _make_session()
+            r = s.get(
+                'https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData',
+                params={'symbol': f'{market}{code}', 'scale': '5', 'ma': 'no', 'datalen': '50'},
+                timeout=15
+            )
+            if r.status_code == 200 and len(r.text) > 100:
+                raw = r.json()
+                if raw and len(raw) > 0:
+                    records = []
+                    for item in raw:
+                        if item['day'].startswith(today_str):
+                            records.append({
+                                'time': item['day'],
+                                'open': float(item['open']),
+                                'close': float(item['close']),
+                                'high': float(item['high']),
+                                'low': float(item['low']),
+                                'volume': float(item['volume'])
+                            })
+                    if records:
+                        print(f"    新浪分时兜底成功，{len(records)}条", file=sys.stderr)
+                        return pd.DataFrame(records)
+        except Exception:
+            if attempt < 2:
+                time.sleep(2)
+    return None
+
+
 def fetch_recent_5min(code: str, is_etf: bool, days: int = 5) -> Optional[pd.DataFrame]:
-    """获取最近几天的 5 分钟K线（用于计算近期上午量能均值）"""
+    """获取最近几天的 5 分钟K线（用于计算近期上午量能均值）
+    
+    东方财富为首选，失败后降级为纯日K量能对比。
+    """
     end = datetime.now().strftime('%Y%m%d')
     start = (datetime.now() - timedelta(days=days + 3)).strftime('%Y%m%d')
     if is_etf:
@@ -246,7 +289,11 @@ def fetch_recent_5min(code: str, is_etf: bool, days: int = 5) -> Optional[pd.Dat
         market_id = '1' if code.startswith('6') else '0'
         secid = f'{market_id}.{code}'
 
-    return _try_eastmoney_kline(secid, start, end, klt='5')
+    df = _try_eastmoney_kline(secid, start, end, klt='5')
+    if df is not None:
+        return df
+    # 东方财富不可用时返回 None，量能对比会降级为"无数据"而非报错
+    return None
 
 
 def fetch_realtime_quote(code: str, is_etf: bool = False) -> Optional[Dict]:
@@ -664,7 +711,11 @@ def format_summary(results: List[Dict]) -> str:
 # ══════════════════════════════════════════════════════════════
 
 def is_trading_day() -> Tuple[bool, str]:
-    """检查今日是否为A股交易日"""
+    """检查今日是否为A股交易日
+    
+    多层兜底：东方财富分时 → 腾讯实时行情 → 假定交易日
+    避免将网络故障误判为休市。
+    """
     today = datetime.now()
     # 周末
     if today.weekday() >= 5:
@@ -675,14 +726,41 @@ def is_trading_day() -> Tuple[bool, str]:
     if now < MORNING_CLOSE[0] * 60 + MORNING_CLOSE[1]:
         return False, '上午尚未收盘'
 
-    # 简单交易日判断：尝试获取一只大盘股数据看今天有没有
+    # 源1: 东方财富分时数据
     try:
         df = fetch_intraday_5min('600036', is_etf=False)
-        if df is None or len(df) == 0:
-            return False, '今日无交易数据（可能为节假日）'
-    except:
-        return True, ''  # 网络问题就假定交易日，让后续逻辑兜底
+        if df is not None and len(df) > 0:
+            return True, ''
+    except Exception:
+        pass
 
+    # 源2: 腾讯实时行情——若能获取到当天报价，说明市场在交易
+    print("  ⚠️ 东方财富分时不可用，尝试腾讯行情验证交易日...", file=sys.stderr)
+    try:
+        quote = fetch_realtime_quote('600036')
+        if quote and quote.get('current') and quote['current'] > 0:
+            print("    腾讯行情确认：今日为交易日", file=sys.stderr)
+            return True, ''
+    except Exception:
+        pass
+
+    # 源3: 新浪实时行情兜底
+    try:
+        s = _make_session()
+        r = s.get('https://hq.sinajs.cn/list=sh600036', timeout=10,
+                   headers={'Referer': 'https://finance.sina.com.cn'})
+        if r.status_code == 200 and r.text and len(r.text) > 50:
+            # 检查是否返回了有效数据（非休市时返回空值）
+            text = r.text.split('"')[1] if '"' in r.text else ''
+            parts = text.split(',')
+            if len(parts) >= 4 and parts[3] not in ('', '0.000', '0.00'):
+                print("    新浪行情确认：今日为交易日", file=sys.stderr)
+                return True, ''
+    except Exception:
+        pass
+
+    # 所有源都不可用 → 网络故障，假定交易日（让后续逻辑逐只标的兜底）
+    print("  ⚠️ 交易日检测：所有数据源暂时不可用，假定为交易日（避免误判休市）", file=sys.stderr)
     return True, ''
 
 

@@ -1,15 +1,15 @@
 {
   "report": {
-    "output_dir": "C:\\Users\\李正材\\Desktop\\持仓日报",
+    "output_dir": "C:\\Users\\<NAME>\\Desktop\\<REPORT_DIR>",
     "noon_time": "11:35",
     "evening_time": "15:30"
   },
   "holdings": {
-    "file_path": "C:\\agent\\03-portfolio-tools\\my-holdings.txt"
+    "file_path": "C:\\agent\\03-portfolio-tools\\<YOUR_PORTFOLIO_FILE>"
   },
   "feishu": {
     "enabled": true,
-    "chat_id": "oc_0d8760ab9b20345f32d4219973d4cc43"
+    "chat_id": "<REDACTED>"
   },
   "alert": {
     "breakout_threshold": 0.03,
