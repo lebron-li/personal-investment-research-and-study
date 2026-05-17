@@ -17,6 +17,7 @@
 ## 近期研究
 
 - **恒生科技终极研报** (`hang-seng-tech/hstech-ultimate-report.md`) — AI 商业闭环前提下，恒生科技的定价重构、全球资金传导与 2-3 年价格情景推演
+- **恒生科技多情景假设报告** (`hang-seng-tech/hstech-multi-premise-report.md`) — 多情景假设下的恒生科技估值与策略分析
 - **兴业银行综合分析** (`banks-stocks/`) — PB/PE/股息率多维估值
 - **药明康德创新药价格推演** (`innovative-pharma/`) — 创新药出海与估值修复
 
