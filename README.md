@@ -6,6 +6,7 @@
 
 ```
 ├── banks-stocks/          # 银行股深度分析（招商银行、兴业银行等）
+├── breeding-industry/     # 养殖行业与猪周期研究（牧原/温氏/新希望深度对比）
 ├── hang-seng-tech/        # 恒生科技指数专题研究（AI周期定价/流动性传导/远期推演）
 ├── innovative-pharma/     # 创新药与医疗板块研究（药明康德等）
 ├── kondratieff-cycle/     # 康波周期研究
@@ -20,6 +21,7 @@
 - **恒生科技多情景假设报告** (`hang-seng-tech/hstech-multi-premise-report.md`) — 多情景假设下的恒生科技估值与策略分析
 - **兴业银行综合分析** (`banks-stocks/`) — PB/PE/股息率多维估值
 - **药明康德创新药价格推演** (`innovative-pharma/`) — 创新药出海与估值修复
+- **猪周期三巨头对比** (`breeding-industry/pig-cycle-three-stocks-analysis-2026-05-24.md`) — 牧原/温氏/新希望技术面+基本面+消息面全面对比
 
 ## 技能集
 
